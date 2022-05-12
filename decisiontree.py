@@ -82,10 +82,10 @@ class Node:
             tabs += '    '
         
         attribute = self.col_names[self.deciding_col]
-        print(Fore.WHITE + f'{tabs}<{attribute}>')
+        print(Fore.MAGENTA + f'{tabs}<{attribute}>')
         
         for k, child in self.children.items():
-            print(Fore.MAGENTA + f'{tabs}    {k}:', end=('\n' if not child.is_leaf else ' '))
+            print(Fore.WHITE + f'{tabs}    {k}:', end=('\n' if not child.is_leaf else ' '))
             child.print(inverser)
 
     def __get_column_values(self, col):

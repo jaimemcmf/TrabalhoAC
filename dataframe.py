@@ -170,11 +170,11 @@ class DataFrame:
         
         train, test = shuffled_data[:split_index], shuffled_data[split_index:]
         
-        X_train = [x[X_indexes[0]:X_indexes[1]] for x in train]
-        X_test = [x[X_indexes[0]:X_indexes[1]] for x in test]
+        X_train = [row[X_indexes[0]:X_indexes[1]] for row in train]
+        X_test = [row[X_indexes[0]:X_indexes[1]] for row in test]
 
-        y_train = [x[y_class] for x in train]
-        y_test = [x[y_class] for x in test]
+        y_train = [row[y_class] for row in train]
+        y_test = [row[y_class] for row in test]
 
         return X_train, X_test, y_train, y_test
 
@@ -182,4 +182,4 @@ class DataFrame:
         """
         Retorna o dataset com somenete as colunas desejadas.
         """
-        return [[a for i, a in enumerate(x) if i in cols] for x in self.values]
+        return [[element for i, element in enumerate(row) if i in cols] for row in self.values]
