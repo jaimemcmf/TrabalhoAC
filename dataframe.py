@@ -47,7 +47,7 @@ class DataFrame:
         elif key_type == tuple:
             assert len(key) == 2, 'Invalid tuple size'
             if key[1] < 0:
-                key = (key[0], self.shape[1] - key[1])
+                key = (key[0], self.shape[1] + key[1])
             new_values = []
             for row in self.values:
                 new_values.append([x for i, x in enumerate(row) if i >= key[0] and i < key[1]])
@@ -121,7 +121,7 @@ class DataFrame:
         categóricos, divididos entre maiores e menores ou iguais ao valor mediano dos dados
         """
         col_i = self.__get_col_index_by_key(key)
-        assert self.column_types[col_i] == float, 'This can only be done to continuous valued columns'
+        assert self.column_types[col_i] == float or self.column_types[col_i] == int, 'This can only be done to continuous valued columns'
 
         values = self[self.columns[col_i]]
         median = np.median(values)
@@ -136,7 +136,7 @@ class DataFrame:
         Aplica a função de categorização a todas as colunas do tipo float
         """
         for j, t in enumerate(self.column_types):
-            if t == float:
+            if t == float or t == int:
                 self.__continuous_split(j)
 
     def factorize(self, key):
