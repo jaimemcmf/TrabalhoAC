@@ -6,7 +6,7 @@ import random
 
 class Node:
 
-    def __init__(self, X, y, col_names, depth=0, parent=None):
+    def __init__(self, X, y, col_names, depth=0, parent=None, max_depth=np.inf):
         """
         Inicializa o nó individual da decision tree.
         """
@@ -19,10 +19,11 @@ class Node:
         self.X_shape = (len(X), len(X[0]))
         self.depth = depth
         self.parent = parent
+        self.max_depth = max_depth
 
-        self.is_leaf = self.__decide_if_leaf()
+        self.is_leaf = self._decide_if_leaf()
         if not self.is_leaf:
-            self.__generate_children()
+            self._generate_children()
 
     def __call__(self, x):
         """
@@ -88,19 +89,24 @@ class Node:
             print(Fore.WHITE + f'{tabs}    {k}:', end=('\n' if not child.is_leaf else ' '))
             child.print(inverser)
 
-    def __get_column_values(self, col):
+    def _get_column_values(self, col):
         """
         Retorna um vetor com os valores de uma coluna.
         """
         assert col >= 0 and col < len(self.X[0]), 'Invalid key value'
         return [self.X[i][col] for i in range(len(self.X))]
 
-    def __decide_if_leaf(self):
+    def _decide_if_leaf(self):
         """
         Indentifica se o nó deve ser uma folha, e caso sim, define o valor e
         a o tamanho dos dados que a definiram.
         """
-        if len(self.y) == 0 or self.X_shape[1] == 0:
+        if self.depth == self.max_depth:
+            # the most common value in y
+            self.leaf_value = max(set(self.y), key=self.y.count)
+            self.leaf_counter = len(self.y)
+            return True
+        elif len(self.y) == 0 or self.X_shape[1] == 0:
             self.leaf_value, self.leaf_counter = self.parent.most_common_y()
             return True
         elif all([i == self.y[0] for i in self.y]):
@@ -110,12 +116,12 @@ class Node:
         
         return False
 
-    def __attribute_entropy(self, col):
+    def _attribute_entropy(self, col):
         """
         Retorna o valor da entropia de uma certa coluna.
         """
         value_counter = dict()
-        col_values = self.__get_column_values(col)
+        col_values = self._get_column_values(col)
         for v in col_values:
             if v not in value_counter.keys():
                 value_counter[v] = 1
@@ -128,24 +134,24 @@ class Node:
 
         return sum([(-1) * p * np.log2(p) for _, p in value_counter.items()])
 
-    def __decide_most_important_attribute(self):
+    def _decide_most_important_attribute(self):
         """
         Dado as colunas disponíveis, decide qual delas tem o maior valor
         de entropia.
         """
         assert self.X_shape[0] > 0
         
-        highest_entropy = self.__attribute_entropy(0)
+        highest_entropy = self._attribute_entropy(0)
         highest_entropy_col = 0
         for j in range(1, self.X_shape[1]):
-            tmp_entropy = self.__attribute_entropy(j)
+            tmp_entropy = self._attribute_entropy(j)
             if tmp_entropy > highest_entropy:
                 highest_entropy = tmp_entropy
                 highest_entropy_col = j
         
         self.deciding_col = highest_entropy_col
 
-    def __get_dropped_col_dataset(self, X, col):
+    def _get_dropped_col_dataset(self, X, col):
         """
         Retorna um dataset sem a coluna informada.
         """
@@ -153,43 +159,43 @@ class Node:
             del x[col]
         return X
 
-    def __split_dataset_by_classes(self, X, y, deciding_col):
+    def _split_dataset_by_classes(self, X, y, deciding_col):
         """
         Dada uma coluna, cria um dicionário com os novos datasets referentes
         às classes de nesta coluna
         """
-        classes = set(self.__get_column_values(deciding_col))
+        classes = set(self._get_column_values(deciding_col))
         class_to_dataset = dict()
         for c in classes:
             new_X, new_y = zip(*[(x, y_i,) for x, y_i in zip(X, y) if x[deciding_col] == c])
             class_to_dataset[c] = (new_X, new_y,)
         return class_to_dataset
 
-    def __generate_children(self):
+    def _generate_children(self):
         """
         Escolhe o atributo que decide a predição dessa classe e recursivamente
         cria seus nós 'filhos'
         """
-        self.__decide_most_important_attribute()
+        self._decide_most_important_attribute()
         self.children = dict()
 
         new_col_names = [c for i, c in enumerate(self.col_names) if i != self.deciding_col]
 
-        class_to_dataset = self.__split_dataset_by_classes(self.X, self.y, self.deciding_col)
+        class_to_dataset = self._split_dataset_by_classes(self.X, self.y, self.deciding_col)
         for k, (new_X, new_y) in class_to_dataset.items():
-            new_X = self.__get_dropped_col_dataset(new_X, self.deciding_col)
-            self.children[k] = Node(new_X, new_y, new_col_names, self.depth+1, self)
+            new_X = self._get_dropped_col_dataset(new_X, self.deciding_col)
+            self.children[k] = Node(new_X, new_y, new_col_names, self.depth+1, self, self.max_depth)
 
 
 class DecisionTree:
 
-    def __init__(self, X, y, columns, inverse_class_dict):
+    def __init__(self, X, y, columns, inverse_class_dict, max_depth=np.inf):
         """
         Inicializaçao da DT com o dict de inversão da classe das labels
         fatorizadas para seu nome.
         """
         self.inverse_class_dict = inverse_class_dict
-        self.root = Node(X, y, columns)
+        self.root = Node(X, y, columns, max_depth=max_depth)
 
     def __call__(self, x):
         """

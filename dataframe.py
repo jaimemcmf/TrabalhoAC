@@ -14,12 +14,12 @@ class DataFrame:
             file_path (string): caminho até o arquivo .csv
         """
         assert file_path is not None, 'Please inform the file path'
-        self.__read_csv(file_path)
+        self._read_csv(file_path)
         
         '''dict for each column type by column'''
-        self.__init_col_types()
+        self._init_col_types()
         '''list for each column index by name'''
-        self.__init_col_to_index_dict()        
+        self._init_col_to_index_dict()        
         self.shape = (len(self.values), len(self.columns))
 
         self.factorized_cols = dict()
@@ -37,7 +37,7 @@ class DataFrame:
         
         # Retorna a coluna referente à string informada.
         elif key_type == str:
-            j = self.__get_col_index_by_key(key)
+            j = self._get_col_index_by_key(key)
             return np.array(
                 [self.values[i][j] for i in range(self.shape[0])],
                 dtype=self.column_types[j]
@@ -55,7 +55,7 @@ class DataFrame:
         else:
             raise Exception('Invalid key type')
 
-    def __init_col_to_index_dict(self):
+    def _init_col_to_index_dict(self):
         """
         Cria um dicionário do tipo nome da coluna -> índice
         """
@@ -63,7 +63,7 @@ class DataFrame:
         for i, c in enumerate(self.columns):
             self.colum_to_index_dict[c] = i
 
-    def __init_col_types(self):
+    def _init_col_types(self):
         """
         Cria um vetor referente ao tipos de dados em cada coluna e aplica
         uma conversão do tipo aos elementosç
@@ -90,7 +90,7 @@ class DataFrame:
             for i in range(len(self.values)):
                 self.values[i][j] = type(self.values[i][j])
 
-    def __read_csv(self, file_path):
+    def _read_csv(self, file_path):
         """
         Função de leitura do arquivo e armazenamento em variáveis.
         """
@@ -102,7 +102,7 @@ class DataFrame:
         
         self.values = [l.replace('\n', '').split(',') for l in lines[1:]]
 
-    def __get_col_index_by_key(self, key):
+    def _get_col_index_by_key(self, key):
         """
         Retorna o índice da coluna referente a uma chave
         """
@@ -115,12 +115,12 @@ class DataFrame:
         else:
             raise Exception('Invalid key type')
 
-    def __continuous_split(self, key):
+    def _continuous_split(self, key):
         """
         Transforma uma coluna de valores contínuos (float) em uma de valores
         categóricos, divididos entre maiores e menores ou iguais ao valor mediano dos dados
         """
-        col_i = self.__get_col_index_by_key(key)
+        col_i = self._get_col_index_by_key(key)
         assert self.column_types[col_i] == float or self.column_types[col_i] == int, 'This can only be done to continuous valued columns'
 
         values = self[self.columns[col_i]]
@@ -131,13 +131,12 @@ class DataFrame:
             self.values[i][col_i] = f'<={median_str}' if self.values[i][col_i] <= median else f'>{median_str}'
         self.column_types[col_i] = str
 
-    def categorize_continuous_values(self):
+    def categorize_continuous_values(self, cols):
         """
         Aplica a função de categorização a todas as colunas do tipo float
         """
-        for j, t in enumerate(self.column_types):
-            if t == float or t == int:
-                self.__continuous_split(j)
+        for c in cols:
+            self._continuous_split(c)
 
     def factorize(self, key):
         """
@@ -145,7 +144,7 @@ class DataFrame:
         e cria um dict para se obter os valores originais a partir dos
         valores fatorados.
         """
-        col_i = self.__get_col_index_by_key(key)
+        col_i = self._get_col_index_by_key(key)
 
         classes = set(self[self.columns[col_i]])
         class_dict = dict()
