@@ -42,7 +42,7 @@ class Node:
         else:
             x = deepcopy(x)
             deciding_col_value = x[self.deciding_col]
-            del x[self.deciding_col]
+            x = np.delete(x, self.deciding_col)
 
             if deciding_col_value in self.children.keys():
                 return self.children[deciding_col_value].predict(x)
@@ -70,12 +70,12 @@ class Node:
                 most_common_y = y
         return most_common_y, biggest_count
     
-    def print(self, inverser):
+    def print(self):
         """
         Função recursiva para imprimir uma visualização da decision tree.
         """
         if self.is_leaf:
-            print(Fore.CYAN + f'{inverser[self.leaf_value]} ({self.leaf_counter})')
+            print(Fore.CYAN + f'{self.leaf_value} ({self.leaf_counter})')
             return
 
         tabs = ''
@@ -87,7 +87,7 @@ class Node:
         
         for k, child in self.children.items():
             print(Fore.WHITE + f'{tabs}    {k}:', end=('\n' if not child.is_leaf else ' '))
-            child.print(inverser)
+            child.print()
 
     def _get_column_values(self, col):
         """
@@ -155,10 +155,13 @@ class Node:
         """
         Retorna um dataset sem a coluna informada.
         """
+        '''
         for x in X:
             del x[col]
         return X
-
+        '''
+        return [np.delete(x, col) for x in X]
+    
     def _split_dataset_by_classes(self, X, y, deciding_col):
         """
         Dada uma coluna, cria um dicionário com os novos datasets referentes
@@ -189,26 +192,30 @@ class Node:
 
 class DecisionTree:
 
-    def __init__(self, X, y, columns, inverse_class_dict, max_depth=np.inf):
+    def __init__(self, columns, max_depth=np.inf):
         """
         Inicializaçao da DT com o dict de inversão da classe das labels
         fatorizadas para seu nome.
         """
-        self.inverse_class_dict = inverse_class_dict
-        self.root = Node(X, y, columns, max_depth=max_depth)
+        self.columns = columns
+        self.max_depth = max_depth
 
-    def __call__(self, x):
+    def __call__(self, X):
         """
         Simplesmente outra maneira de chamar a função predict.
         """
-        return self.predict(x)
+        return self.predict(X)
+    
+    def fit(self, X, y):
+        self.root = Node(X, y, self.columns, max_depth=self.max_depth)
+        return self
 
     def predict(self, x):
         """
         Dado um vetor de valores, retorna classe predita para ele.
         """
-        prediction = self.root(x)
-        return self.inverse_class_dict[prediction]
+        assert self.root is not None
+        return self.root(x)
     
     def evaluate(self, X, y):
         """
@@ -216,12 +223,12 @@ class DecisionTree:
         """
         res = 0
         for x, y_i in zip(X, y):
-            res += int(self(x) == self.inverse_class_dict[y_i])
+            res += int(self(x) == y_i)
         return res / len(y)
 
     def print(self):
         """
         Função que imprime uma visualização da decision tree.
         """
-        self.root.print(self.inverse_class_dict)
+        self.root.print()
         print(Style.RESET_ALL)
