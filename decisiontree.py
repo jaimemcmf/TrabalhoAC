@@ -2,6 +2,7 @@ from copy import deepcopy
 import numpy as np
 from colorama import Fore, Style
 import random
+import pandas as pd
 
 
 class Node:
@@ -205,8 +206,29 @@ class DecisionTree:
         Simplesmente outra maneira de chamar a função predict.
         """
         return self.predict(X)
+
+    def _categorize_continuous_values(self, X):
+        if not self.categorized:
+            self.category_split = dict()
+
+        for col in range(X.shape[1]):
+            if type(X[0][col]) is int or type(X[0][col]) is float:
+                if self.categorized:
+                    median = self.category_split[col]
+                else:
+                    median = np.median(X[:, col])
+                    self.category_split[col] = median
+
+                median_str = '{:.2f}'.format(median)
+                X[:, col] = pd.cut(X[:, col], bins=[-np.inf, median, np.inf], labels=[f'<={median_str}', f'>{median_str}'])
+        
+        self.categorized = True
+        return X
     
     def fit(self, X, y):
+        self.categorized = False
+        X = self._categorize_continuous_values(X)
+
         self.root = Node(X, y, self.columns, max_depth=self.max_depth)
         return self
 
@@ -221,6 +243,8 @@ class DecisionTree:
         """
         Retorna a porcentagem dos dados classificados corretamente.
         """
+        X = self._categorize_continuous_values(X)
+
         res = 0
         for x, y_i in zip(X, y):
             res += int(self(x) == y_i)
