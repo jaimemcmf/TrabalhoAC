@@ -7,7 +7,7 @@ import pandas as pd
 
 class Node:
 
-    def __init__(self, X, y, col_names, depth=0, parent=None, max_depth=np.inf):
+    def __init__(self, X, y, depth=0, parent=None, max_depth=np.inf):
         """
         Inicializa o nó individual da decision tree.
         """
@@ -16,7 +16,6 @@ class Node:
             assert len(X) > 0 and len(y) > 0
 
         self.X, self.y = deepcopy(X), deepcopy(y)
-        self.col_names = deepcopy(col_names)
         self.X_shape = (len(X), len(X[0]))
         self.depth = depth
         self.parent = parent
@@ -183,22 +182,19 @@ class Node:
         self._decide_most_important_attribute()
         self.children = dict()
 
-        new_col_names = [c for i, c in enumerate(self.col_names) if i != self.deciding_col]
-
         class_to_dataset = self._split_dataset_by_classes(self.X, self.y, self.deciding_col)
         for k, (new_X, new_y) in class_to_dataset.items():
             new_X = self._get_dropped_col_dataset(new_X, self.deciding_col)
-            self.children[k] = Node(new_X, new_y, new_col_names, self.depth+1, self, self.max_depth)
+            self.children[k] = Node(new_X, new_y, self.depth+1, self, self.max_depth)
 
 
 class DecisionTree:
 
-    def __init__(self, columns, max_depth=np.inf):
+    def __init__(self, max_depth=np.inf):
         """
         Inicializaçao da DT com o dict de inversão da classe das labels
         fatorizadas para seu nome.
         """
-        self.columns = columns
         self.max_depth = max_depth
 
     def __call__(self, X):
@@ -229,7 +225,7 @@ class DecisionTree:
         self.categorized = False
         X = self._categorize_continuous_values(X)
 
-        self.root = Node(X, y, self.columns, max_depth=self.max_depth)
+        self.root = Node(X, y, max_depth=self.max_depth)
         return self
 
     def predict(self, x):
@@ -237,7 +233,12 @@ class DecisionTree:
         Dado um vetor de valores, retorna classe predita para ele.
         """
         assert self.root is not None
-        return self.root(x)
+
+        try:
+            iter(x)
+            return [self.root(x_i) for x_i in x]
+        except Exception:
+            return self.root(x)
     
     def evaluate(self, X, y):
         """
@@ -249,10 +250,3 @@ class DecisionTree:
         for x, y_i in zip(X, y):
             res += int(self(x) == y_i)
         return res / len(y)
-
-    def print(self):
-        """
-        Função que imprime uma visualização da decision tree.
-        """
-        self.root.print()
-        print(Style.RESET_ALL)

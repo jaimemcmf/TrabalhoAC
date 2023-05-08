@@ -23,7 +23,7 @@ class DataFrame:
         self.shape = (len(self.values), len(self.columns))
 
         self.factorized_cols = dict()
-
+        
     def __getitem__(self, key):
         """
         Implementa diferentes maneiras de recuperar os valores do dataset
