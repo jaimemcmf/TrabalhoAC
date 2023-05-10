@@ -7,7 +7,7 @@ import pandas as pd
 
 class Node:
 
-    def __init__(self, X, y, depth=0, parent=None, max_depth=np.inf):
+    def __init__(self, X, y, depth=0, parent=None, max_depth=np.inf, desimbalancer_params=None):
         """
         Inicializa o nó individual da decision tree.
         """
@@ -20,6 +20,7 @@ class Node:
         self.depth = depth
         self.parent = parent
         self.max_depth = max_depth
+        self.desimbalancer_params = desimbalancer_params
 
         self.is_leaf = self._decide_if_leaf()
         if not self.is_leaf:
@@ -103,8 +104,28 @@ class Node:
         """
         if self.depth == self.max_depth:
             # the most common value in y
+            max_presence = -np.inf
+            max_count = -np.inf
+            leaf_value = None
+            for y_i in set(self.y):
+                if self.desimbalancer_params is not None:
+                    desimbalancer = self.desimbalancer_params[y_i]
+                else:
+                    desimbalancer = 1
+
+                count = len([aux for aux in self.y if aux == y_i]) #np.count_nonzero(self.y == y_i)
+                if count * desimbalancer > max_presence:
+                    max_presence = count * desimbalancer
+                    max_count = count
+                    leaf_value = y_i
+
+            self.leaf_value = leaf_value
+            self.leaf_counter = max_count
+            '''
             self.leaf_value = max(set(self.y), key=self.y.count)
             self.leaf_counter = len(self.y)
+            '''
+
             return True
         elif len(self.y) == 0 or self.X_shape[1] == 0:
             self.leaf_value, self.leaf_counter = self.parent.most_common_y()
@@ -155,11 +176,6 @@ class Node:
         """
         Retorna um dataset sem a coluna informada.
         """
-        '''
-        for x in X:
-            del x[col]
-        return X
-        '''
         return [np.delete(x, col) for x in X]
     
     def _split_dataset_by_classes(self, X, y, deciding_col):
@@ -185,17 +201,18 @@ class Node:
         class_to_dataset = self._split_dataset_by_classes(self.X, self.y, self.deciding_col)
         for k, (new_X, new_y) in class_to_dataset.items():
             new_X = self._get_dropped_col_dataset(new_X, self.deciding_col)
-            self.children[k] = Node(new_X, new_y, self.depth+1, self, self.max_depth)
+            self.children[k] = Node(new_X, new_y, self.depth+1, self, self.max_depth, desimbalancer_params=self.desimbalancer_params)
 
 
 class DecisionTree:
 
-    def __init__(self, max_depth=np.inf):
+    def __init__(self, max_depth=np.inf, desimbalancer=False):
         """
         Inicializaçao da DT com o dict de inversão da classe das labels
         fatorizadas para seu nome.
         """
         self.max_depth = max_depth
+        self.desimbalancer = desimbalancer
 
     def __call__(self, X):
         """
@@ -225,7 +242,14 @@ class DecisionTree:
         self.categorized = False
         X = self._categorize_continuous_values(X)
 
-        self.root = Node(X, y, max_depth=self.max_depth)
+        if self.desimbalancer:
+            desimbalancer_params = dict()
+            for y_i in set(y):
+                desimbalancer_params[y_i] = 1 - (len([aux for aux in y if aux == y_i]) / len(y))
+        else:
+            desimbalancer_params = None
+
+        self.root = Node(X, y, max_depth=self.max_depth, desimbalancer_params=desimbalancer_params)
         return self
 
     def predict(self, x):
