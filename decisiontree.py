@@ -70,7 +70,7 @@ class Node:
                 biggest_count = count
                 most_common_y = y
         return most_common_y, biggest_count
-    
+
     def print(self):
         """
         Função recursiva para imprimir uma visualização da decision tree.
@@ -82,12 +82,13 @@ class Node:
         tabs = ''
         for _ in range(self.depth * 2):
             tabs += '    '
-        
+
         attribute = self.col_names[self.deciding_col]
         print(Fore.MAGENTA + f'{tabs}<{attribute}>')
-        
+
         for k, child in self.children.items():
-            print(Fore.WHITE + f'{tabs}    {k}:', end=('\n' if not child.is_leaf else ' '))
+            print(Fore.WHITE + f'{tabs}    {k}:',
+                  end=('\n' if not child.is_leaf else ' '))
             child.print()
 
     def _get_column_values(self, col):
@@ -113,7 +114,8 @@ class Node:
                 else:
                     desimbalancer = 1
 
-                count = len([aux for aux in self.y if aux == y_i]) #np.count_nonzero(self.y == y_i)
+                # np.count_nonzero(self.y == y_i)
+                count = len([aux for aux in self.y if aux == y_i])
                 if count * desimbalancer > max_presence:
                     max_presence = count * desimbalancer
                     max_count = count
@@ -134,7 +136,7 @@ class Node:
             self.leaf_value = self.y[0]
             self.leaf_counter = len(self.y)
             return True
-        
+
         return False
 
     def _attribute_entropy(self, col):
@@ -161,7 +163,7 @@ class Node:
         de entropia.
         """
         assert self.X_shape[0] > 0
-        
+
         highest_entropy = self._attribute_entropy(0)
         highest_entropy_col = 0
         for j in range(1, self.X_shape[1]):
@@ -169,7 +171,7 @@ class Node:
             if tmp_entropy > highest_entropy:
                 highest_entropy = tmp_entropy
                 highest_entropy_col = j
-        
+
         self.deciding_col = highest_entropy_col
 
     def _get_dropped_col_dataset(self, X, col):
@@ -177,7 +179,7 @@ class Node:
         Retorna um dataset sem a coluna informada.
         """
         return [np.delete(x, col) for x in X]
-    
+
     def _split_dataset_by_classes(self, X, y, deciding_col):
         """
         Dada uma coluna, cria um dicionário com os novos datasets referentes
@@ -186,7 +188,8 @@ class Node:
         classes = set(self._get_column_values(deciding_col))
         class_to_dataset = dict()
         for c in classes:
-            new_X, new_y = zip(*[(x, y_i,) for x, y_i in zip(X, y) if x[deciding_col] == c])
+            new_X, new_y = zip(*[(x, y_i,)
+                               for x, y_i in zip(X, y) if x[deciding_col] == c])
             class_to_dataset[c] = (new_X, new_y,)
         return class_to_dataset
 
@@ -198,21 +201,30 @@ class Node:
         self._decide_most_important_attribute()
         self.children = dict()
 
-        class_to_dataset = self._split_dataset_by_classes(self.X, self.y, self.deciding_col)
+        class_to_dataset = self._split_dataset_by_classes(
+            self.X, self.y, self.deciding_col)
         for k, (new_X, new_y) in class_to_dataset.items():
             new_X = self._get_dropped_col_dataset(new_X, self.deciding_col)
-            self.children[k] = Node(new_X, new_y, self.depth+1, self, self.max_depth, desimbalancer_params=self.desimbalancer_params)
+            self.children[k] = Node(new_X, new_y, self.depth+1, self,
+                                    self.max_depth, desimbalancer_params=self.desimbalancer_params)
 
 
 class DecisionTree:
 
-    def __init__(self, max_depth=np.inf, desimbalancer=False):
+    def __init__(self, max_depth=np.inf, desimbalancer=False, desimbalancer_func='linear'):
         """
         Inicializaçao da DT com o dict de inversão da classe das labels
         fatorizadas para seu nome.
         """
         self.max_depth = max_depth
         self.desimbalancer = desimbalancer
+        
+        if desimbalancer_func == 'linear':
+            self.desimbalancer_func = lambda x: x
+        elif desimbalancer_func == 'exp':
+            self.desimbalancer_func = lambda x: x ** 2
+        elif desimbalancer_func == 'inv_exp':
+            self.desimbalancer_func = lambda x: x ** (1/2)
 
     def __call__(self, X):
         """
@@ -233,11 +245,12 @@ class DecisionTree:
                     self.category_split[col] = median
 
                 median_str = '{:.2f}'.format(median)
-                X[:, col] = pd.cut(X[:, col], bins=[-np.inf, median, np.inf], labels=[f'<={median_str}', f'>{median_str}'])
-        
+                X[:, col] = pd.cut(X[:, col], bins=[-np.inf, median, np.inf],
+                                   labels=[f'<={median_str}', f'>{median_str}'])
+
         self.categorized = True
         return X
-    
+
     def fit(self, X, y):
         self.categorized = False
         X = self._categorize_continuous_values(X)
@@ -245,11 +258,13 @@ class DecisionTree:
         if self.desimbalancer:
             desimbalancer_params = dict()
             for y_i in set(y):
-                desimbalancer_params[y_i] = 1 - (len([aux for aux in y if aux == y_i]) / len(y))
+                param = 1 - (len([aux for aux in y if aux == y_i]) / len(y))
+                desimbalancer_params[y_i] = self.desimbalancer_func(param)
         else:
             desimbalancer_params = None
 
-        self.root = Node(X, y, max_depth=self.max_depth, desimbalancer_params=desimbalancer_params)
+        self.root = Node(X, y, max_depth=self.max_depth,
+                         desimbalancer_params=desimbalancer_params)
         return self
 
     def predict(self, x):
@@ -263,7 +278,7 @@ class DecisionTree:
             return [self.root(x_i) for x_i in x]
         except Exception:
             return self.root(x)
-    
+
     def evaluate(self, X, y):
         """
         Retorna a porcentagem dos dados classificados corretamente.
@@ -274,3 +289,22 @@ class DecisionTree:
         for x, y_i in zip(X, y):
             res += int(self(x) == y_i)
         return res / len(y)
+
+    def ppv(self, X, y):
+
+        X = self._categorize_continuous_values(X)
+        m1 = dict()
+        m2 = dict()
+
+        for y_i in set(y):
+            m1[y_i] = len([aux for aux in y if aux == y_i])
+            m2[y_i] = 0
+
+        for x, y_i in zip(X, y):
+            if self(x) == y_i:
+                m2[y_i] += 1
+
+        for k in m1.keys():
+            print(f'{k} :')
+            print(f'\tperc y: {(m1[k]/len(y))}')
+            print(f'\tprecision: {(m2[k]/m1[k])}')
