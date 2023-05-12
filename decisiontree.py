@@ -290,9 +290,9 @@ class DecisionTree:
             res += int(self(x) == y_i)
         return res / len(y)
 
-    def ppv(self, X, y):
-
+    def trp(self, X, y):
         X = self._categorize_continuous_values(X)
+        
         m1 = dict()
         m2 = dict()
 
