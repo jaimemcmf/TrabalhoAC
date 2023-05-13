@@ -290,7 +290,7 @@ class DecisionTree:
             res += int(self(x) == y_i)
         return res / len(y)
 
-    def ppv(self, X, y):
+    def tpr(self, X, y):
 
         X = self._categorize_continuous_values(X)
         m1 = dict()
@@ -305,6 +305,5 @@ class DecisionTree:
                 m2[y_i] += 1
 
         for k in m1.keys():
-            print(f'{k} :')
-            print(f'\tperc y: {(m1[k]/len(y))}')
-            print(f'\tprecision: {(m2[k]/m1[k])}')
+            print(f'Classe-> {k}:\tIncidência: {"{:.2f}".format((m1[k]/len(y))*100)}%')
+            print(f'\t\tTrue {k} Rate: {"{:.2f}".format((m2[k]/m1[k])*100)}%\n')
