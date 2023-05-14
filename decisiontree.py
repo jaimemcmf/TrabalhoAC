@@ -3,6 +3,61 @@ import numpy as np
 from colorama import Fore, Style
 import random
 import pandas as pd
+import openml
+from sklearn.model_selection import train_test_split
+from copy import deepcopy
+
+def get_result(dataset):
+    try:
+        id = dataset['id']
+        task = openml.tasks.get_task(id)
+        dataframe, _, _, _ = task.get_dataset().get_data()
+        dataframe = dataframe.dropna()
+
+        X = dataframe.values[:, :-1]
+        y = dataframe.values[:, -1]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.33, random_state=42, stratify=y)
+
+        # Utilizamos desse valor de profundidade máxima por ser uma 'rule of thumb'
+        max_depth = int(np.sqrt(X.shape[1]))
+
+        lines = []
+
+        dt = DecisionTree(max_depth=max_depth, desimbalancer=False)
+        dt.fit(X_train, y_train)
+        res = dt.evaluate(X_test, y_test)
+        c1, c2 = dt.trp(X_test, y_test)
+        line = deepcopy(dataset)
+        line['Accuracy'] = "{:.2f}".format(res*100)+"%"
+        line['Class 1 True Rate'] = "{:.2f}".format(c1*100)+"%"
+        line['Class 2 True Rate'] = "{:.2f}".format(c2*100)+"%"
+        line['Desimbalancer?'] = False
+        lines.append(line)
+
+        dt = DecisionTree(max_depth=max_depth, desimbalancer=True)
+        dt.fit(X_train, y_train)
+        res = dt.evaluate(X_test, y_test)
+        c1, c2 = dt.trp(X_test, y_test)
+        
+        line = deepcopy(dataset)
+        line['Accuracy'] = "{:.2f}".format(res*100)+"%"
+        line['Class 1 True Rate'] = "{:.2f}".format(c1*100)+"%"
+        line['Class 2 True Rate'] = "{:.2f}".format(c2*100)+"%"
+        line['Desimbalancer?'] = True
+        lines.append(line)
+        
+        return lines
+    except Exception:
+        return None
+
+def get_dataset_by_task_id(id):
+    task = openml.tasks.get_task(id)
+    X, y, categorical_indicator, attribute_names = task.get_dataset().get_data()
+    return {
+        'id': id, 'X': X, 'y': y,
+        'categorical_indicator': categorical_indicator,
+        'attribute_names': attribute_names
+    }
 
 
 class Node:
@@ -295,7 +350,7 @@ class DecisionTree:
         
         m1 = dict()
         m2 = dict()
-
+        l = list()
         for y_i in set(y):
             m1[y_i] = len([aux for aux in y if aux == y_i])
             m2[y_i] = 0
@@ -305,6 +360,10 @@ class DecisionTree:
                 m2[y_i] += 1
 
         for k in m1.keys():
-            print(f'{k} :')
-            print(f'\tperc y: {(m1[k]/len(y))}')
-            print(f'\tprecision: {(m2[k]/m1[k])}')
+            #print(f'{k} :')
+            #print(f'\tperc y: {(m1[k]/len(y))}')
+            #print(f'\tprecision: {(m2[k]/m1[k])}')
+            l.insert(0, (m2[k]/m1[k]))
+        
+        l.sort()
+        return l[0],l[1]
