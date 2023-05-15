@@ -280,6 +280,8 @@ class DecisionTree:
             self.desimbalancer_func = lambda x: x ** 2
         elif desimbalancer_func == 'inv_exp':
             self.desimbalancer_func = lambda x: x ** (1/2)
+        elif desimbalancer_func == 'linear_compensated':
+            self.desimbalancer_func = lambda x: max(.5, x)
 
     def __call__(self, X):
         """
