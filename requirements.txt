@@ -2,4 +2,6 @@ colorama==0.2.7
 numpy==1.21.2
 openml==0.13.1
 pandas==1.2.4
+plotly==5.5.0
 scikit_learn==1.2.2
+tqdm==4.61.2
