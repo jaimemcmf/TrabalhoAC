@@ -1,5 +1,5 @@
 from dataframe import DataFrame
-from decisiontree import DecisionTree        
+from src.decisiontree import DecisionTree        
         
 if __name__ == '__main__':
     '''
