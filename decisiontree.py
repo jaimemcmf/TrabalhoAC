@@ -3,6 +3,7 @@ import numpy as np
 from colorama import Fore, Style
 import random
 import pandas as pd
+from copy import deepcopy
 
 
 class Node:
@@ -225,6 +226,8 @@ class DecisionTree:
             self.desimbalancer_func = lambda x: x ** 2
         elif desimbalancer_func == 'inv_exp':
             self.desimbalancer_func = lambda x: x ** (1/2)
+        elif desimbalancer_func == 'linear_compensated':
+            self.desimbalancer_func = lambda x: max(.5, x)
 
     def __call__(self, X):
         """
@@ -290,12 +293,12 @@ class DecisionTree:
             res += int(self(x) == y_i)
         return res / len(y)
 
-    def ppv(self, X, y):
-
+    def trp(self, X, y):
         X = self._categorize_continuous_values(X)
+        
         m1 = dict()
         m2 = dict()
-
+        l = list()
         for y_i in set(y):
             m1[y_i] = len([aux for aux in y if aux == y_i])
             m2[y_i] = 0
@@ -305,6 +308,10 @@ class DecisionTree:
                 m2[y_i] += 1
 
         for k in m1.keys():
-            print(f'{k} :')
-            print(f'\tperc y: {(m1[k]/len(y))}')
-            print(f'\tprecision: {(m2[k]/m1[k])}')
+            #print(f'{k} :')
+            #print(f'\tperc y: {(m1[k]/len(y))}')
+            #print(f'\tprecision: {(m2[k]/m1[k])}')
+            l.insert(0, (m2[k]/m1[k]))
+        
+        l.sort()
+        return l[0],l[1]
