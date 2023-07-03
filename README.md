@@ -16,8 +16,7 @@ Taking a simple decision tree implementation, the idea was to tackle the poor pe
 
 The idea was to calculate the chosen class in the leaves taking into account the presence of that class in the original dataset. Three functions were used and a linear function presented the best results.
 
-### Example: ###
+### Example ###
 
 If class 1 has 90% presence in the original dataset and class 2 has 10% presence, if in a leaf there are 10 examples -> 8 class 1/ 2 class 2, the decision would be class 2.
-Using the linear function, class 2 would have a weight of 90 (conversely class 1's weight is 10), and 8 * 10 < 2 * 90.
-
+Using the linear function, class 2 would have a weight of 90 (conversely class 1's weight is 10), and 8 x 10 < 2 x 90.
